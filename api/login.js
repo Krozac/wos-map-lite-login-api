@@ -1,4 +1,3 @@
-// api/login.js
 import fetch from 'node-fetch';
 import crypto from 'crypto';
 
@@ -18,17 +17,16 @@ export default async function handler(req, res) {
 
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  // --- your existing login logic ---
   const { id } = req.body;
   if (!id) return res.status(400).json({ error: 'Missing ID' });
 
   const time = Date.now();
   const form = `fid=${id}&time=${time}`;
-  const sign = require('crypto').createHash('md5').update(form + SECRET).digest('hex');
+  const sign = crypto.createHash('md5').update(form + SECRET).digest('hex'); // ✅ ESM-compatible
   const body = `sign=${sign}&fid=${id}&time=${time}`;
 
   try {
-    const fetchRes = await fetch('https://wos-giftcode-api.centurygame.com/api/player', {
+    const fetchRes = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -41,8 +39,11 @@ export default async function handler(req, res) {
 
     const text = await fetchRes.text();
     let data;
-    try { data = JSON.parse(text); } 
-    catch { return res.status(500).json({ success: false, message: text }); }
+    try { 
+      data = JSON.parse(text); 
+    } catch {
+      return res.status(500).json({ success: false, message: text });
+    }
 
     return res.status(200).json(data);
 
