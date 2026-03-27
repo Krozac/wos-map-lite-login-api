@@ -6,18 +6,29 @@ const API_URL = 'https://wos-giftcode-api.centurygame.com/api/player';
 const SECRET = 'tB87#kPtkxqOS2';
 
 export default async function handler(req, res) {
+  // Allow only your frontend domain
+  res.setHeader('Access-Control-Allow-Origin', 'https://whiteout-planner.krozac.fr');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(204).end();
+  }
+
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
+  // --- your existing login logic ---
   const { id } = req.body;
   if (!id) return res.status(400).json({ error: 'Missing ID' });
 
   const time = Date.now();
   const form = `fid=${id}&time=${time}`;
-  const sign = crypto.createHash('md5').update(form + SECRET).digest('hex');
+  const sign = require('crypto').createHash('md5').update(form + SECRET).digest('hex');
   const body = `sign=${sign}&fid=${id}&time=${time}`;
 
   try {
-    const response = await fetch(API_URL, {
+    const fetchRes = await fetch('https://wos-giftcode-api.centurygame.com/api/player', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -28,7 +39,7 @@ export default async function handler(req, res) {
       body,
     });
 
-    const text = await response.text();
+    const text = await fetchRes.text();
     let data;
     try { data = JSON.parse(text); } 
     catch { return res.status(500).json({ success: false, message: text }); }
